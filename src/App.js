@@ -44,6 +44,7 @@ class App extends React.Component {
   }
 
   async fetchWeather() {
+    if (this.state.location.length < 2) return;
     try {
       // 1) Getting location (geocoding)
       this.setState({ isLoading: true });
@@ -68,10 +69,18 @@ class App extends React.Component {
       const weatherData = await weatherRes.json();
       this.setState({ weather: weatherData.daily });
     } catch (err) {
-      console.err(err);
+      console.error(err);
     } finally {
       this.setState({ isLoading: false });
     }
+  }
+
+  componentDidMount() {
+    this.setState({ location: localStorage.getItem("location") || "" });
+  }
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.location !== prevState.location) this.fetchWeather();
+    localStorage.setItem("location", this.state.location);
   }
 
   render() {
@@ -81,17 +90,15 @@ class App extends React.Component {
         <div>
           <input
             type="text"
-            placeholder="Search From Locastion..."
+            placeholder="Search From Location..."
             value={this.state.location}
             onChange={(e) => this.setState({ location: e.target.value })}
           />
         </div>
-        {this.state.isLoading ? (
-          <p>loading...</p>
-        ) : (
-          <button onClick={this.fetchWeather}>fetch</button>
-        )}
-        {this.state.weather.weathercode ? (
+        {this.state.isLoading && <p>loading...</p>}
+        {!this.state.isLoading &&
+        this.state.weather.weathercode &&
+        this.state.location.length > 2 ? (
           <Weather
             weather={this.state.weather}
             displayLocation={this.state.displayLocation}
@@ -106,10 +113,6 @@ class App extends React.Component {
 export default App;
 
 class Weather extends React.Component {
-  constructor(props) {
-    super(props);
-  }
-
   render() {
     const {
       temperature_2m_max: max,
@@ -129,7 +132,7 @@ class Weather extends React.Component {
               code={code}
               date={dates.at(i)}
               isToday={i === 0}
-              key={code}
+              key={dates.at(i)}
             />
           ))}
         </ul>
